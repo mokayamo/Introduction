@@ -1116,65 +1116,64 @@
                 const startDate = new Date(todo.startDate);
                 const endDate = new Date(todo.endDate);
                 
-                // カレンダーの範囲内での開始・終了位置を計算
+                // カレンダーの範囲内での開始・終了位置を計算（ヘッダー行を除外）
                 const startDiff = Math.floor((startDate - calendarStartDate) / (24 * 60 * 60 * 1000));
                 const endDiff = Math.floor((endDate - calendarStartDate) / (24 * 60 * 60 * 1000));
                 
                 // カレンダーの範囲外の場合はスキップ
-                if (endDiff < 7 || startDiff >= 42) return;
+                if (endDiff < 0 || startDiff >= 42) return;
                 
-                const clampedStart = Math.max(7, startDiff); // ヘッダー行の下から開始
-                const clampedEnd = Math.min(48, endDiff + 7); // カレンダーの範囲内で終了
+                const clampedStart = Math.max(0, startDiff);
+                const clampedEnd = Math.min(41, endDiff);
                 
                 // 週ごとにバーを描画
-                let currentPos = clampedStart;
+                let currentDate = clampedStart;
                 let barCount = 0;
                 
-                while (currentPos <= clampedEnd) {
-                    const weekStart = Math.floor(currentPos / 7) * 7;
-                    const weekEnd = weekStart + 6;
-                    const barStart = Math.max(currentPos, weekStart);
+                while (currentDate <= clampedEnd) {
+                    const currentWeek = Math.floor(currentDate / 7);
+                    const weekStart = currentWeek * 7;
+                    const weekEnd = Math.min(weekStart + 6, 41);
+                    
+                    const barStart = Math.max(currentDate, weekStart);
                     const barEnd = Math.min(clampedEnd, weekEnd);
                     
                     if (barStart <= barEnd) {
-                        this.createWeeklyBar(todo, barStart, barEnd, calendarGrid, zIndex + barCount);
+                        this.createWeeklyBar(todo, barStart, barEnd, calendarGrid, zIndex + barCount, currentWeek);
                         barCount++;
                     }
                     
-                    currentPos = weekEnd + 1;
+                    currentDate = weekEnd + 1;
                 }
             }
 
-            createWeeklyBar(todo, startPos, endPos, calendarGrid, zIndex) {
+            createWeeklyBar(todo, startPos, endPos, calendarGrid, zIndex, weekIndex) {
                 const bar = document.createElement('div');
                 const startCol = startPos % 7;
                 const endCol = endPos % 7;
-                const row = Math.floor(startPos / 7);
+                const row = Math.floor(startPos / 7) + 1; // +1 for header row
                 
-                const width = endCol - startCol + 1;
-                const topOffset = 40 + (zIndex % 3) * 20; // バーを重ならないように配置
+                const topOffset = 35 + (zIndex % 3) * 18; // バーを重ならないように配置
                 
                 bar.className = 'period-bar';
                 bar.style.cssText = `
                     position: absolute;
-                    grid-column: ${startCol + 1} / ${endCol + 2};
-                    grid-row: ${row + 1};
-                    height: 16px;
+                    left: calc(${(startCol / 7) * 100}% + 2px);
+                    width: calc(${((endCol - startCol + 1) / 7) * 100}% - 4px);
+                    top: calc(${((row - 1) * 100) / 6}% + ${topOffset}px);
+                    height: 14px;
                     background: ${todo.completed ? 
                         'linear-gradient(135deg, #16a34a 0%, #15803d 100%)' : 
                         'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'};
-                    border-radius: 8px;
-                    margin: 2px;
-                    margin-top: ${topOffset}px;
+                    border-radius: 7px;
                     z-index: ${1000 + zIndex};
                     cursor: pointer;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                    backdrop-filter: blur(4px);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+                    border: 1px solid rgba(255, 255, 255, 0.3);
                     display: flex;
                     align-items: center;
-                    padding: 0 8px;
-                    font-size: 10px;
+                    padding: 0 6px;
+                    font-size: 9px;
                     font-weight: 600;
                     color: white;
                     overflow: hidden;
@@ -1183,9 +1182,12 @@
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 `;
                 
-                // テキストは最初のバーにのみ表示
-                if (startPos % 7 === 0 || startPos === 7) {
-                    bar.textContent = todo.text.length > 15 ? todo.text.substring(0, 15) + '...' : todo.text;
+                // テキストは最初のバーまたは十分な幅がある場合に表示
+                const barWidth = endCol - startCol + 1;
+                if (weekIndex === 0 || barWidth >= 3) {
+                    const maxLength = Math.max(8, barWidth * 2);
+                    bar.textContent = todo.text.length > maxLength ? 
+                        todo.text.substring(0, maxLength) + '...' : todo.text;
                 }
                 
                 // イベントリスナー
@@ -1196,13 +1198,18 @@
                 
                 bar.addEventListener('mouseenter', () => {
                     bar.style.transform = 'translateY(-2px) scale(1.02)';
-                    bar.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.25)';
+                    bar.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.25)';
+                    bar.style.zIndex = '2000';
                 });
                 
                 bar.addEventListener('mouseleave', () => {
                     bar.style.transform = 'translateY(0) scale(1)';
-                    bar.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+                    bar.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.15)';
+                    bar.style.zIndex = `${1000 + zIndex}`;
                 });
+                
+                // ツールチップ的な機能
+                bar.title = `${todo.text} (${todo.startDate} ~ ${todo.endDate})`;
                 
                 calendarGrid.appendChild(bar);
             }
