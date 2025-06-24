@@ -90,8 +90,83 @@
 
         .date-input {
             display: flex;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 12px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .date-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .date-field label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .task-type-toggle {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            padding: 6px;
+            background: rgba(248, 250, 252, 0.9);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .task-type-btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.6);
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .task-type-btn:hover {
+            background: rgba(255, 255, 255, 0.8);
+            transform: translateY(-1px);
+        }
+
+        .task-type-btn.active {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            border-color: #6366f1;
+            transform: translateY(-1px);
+        }
+
+        .period-inputs {
+            display: none;
+            gap: 12px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .period-inputs.active {
+            display: flex;
+        }
+
+        .single-date-input {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         #taskInput {
@@ -114,20 +189,20 @@
             transform: translateY(-1px);
         }
 
-        #dueDateInput {
-            padding: 16px 20px;
+        #dueDateInput, #startDateInput, #endDateInput {
+            padding: 12px 16px;
             border: 2px solid rgba(0, 0, 0, 0.08);
-            border-radius: 16px;
-            font-size: 16px;
-            font-weight: 400;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
             outline: none;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-width: 160px;
+            min-width: 140px;
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(10px);
         }
 
-        #dueDateInput:focus {
+        #dueDateInput:focus, #startDateInput:focus, #endDateInput:focus {
             border-color: #6366f1;
             background: rgba(255, 255, 255, 0.95);
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1), 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -270,6 +345,18 @@
             background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
             color: #2563eb;
             border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .todo-due-date.period {
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+            color: #7c3aed;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .todo-due-date.period-active {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #16a34a;
+            border: 1px solid rgba(34, 197, 94, 0.2);
         }
 
         .delete-btn {
@@ -504,9 +591,25 @@
                     <input type="text" id="taskInput" placeholder="新しいタスクを入力してください..." />
                     <button id="addBtn">追加</button>
                 </div>
+                <div class="task-type-toggle">
+                    <button type="button" class="task-type-btn active" data-type="single">📅 単発タスク</button>
+                    <button type="button" class="task-type-btn" data-type="period">📆 期間タスク</button>
+                </div>
                 <div class="date-input">
-                    <input type="date" id="dueDateInput" />
-                    <label for="dueDateInput" style="font-size: 14px; color: #666; display: flex; align-items: center;">期日（任意）</label>
+                    <div class="date-field single-date-input">
+                        <label for="dueDateInput">期日</label>
+                        <input type="date" id="dueDateInput" />
+                    </div>
+                    <div class="period-inputs">
+                        <div class="date-field">
+                            <label for="startDateInput">開始日</label>
+                            <input type="date" id="startDateInput" />
+                        </div>
+                        <div class="date-field">
+                            <label for="endDateInput">終了日</label>
+                            <input type="date" id="endDateInput" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -546,6 +649,7 @@
                 this.todos = this.loadTodos();
                 this.currentFilter = 'all';
                 this.currentView = 'list';
+                this.taskType = 'single';
                 this.initElements();
                 this.bindEvents();
                 this.render();
@@ -554,6 +658,8 @@
             initElements() {
                 this.taskInput = document.getElementById('taskInput');
                 this.dueDateInput = document.getElementById('dueDateInput');
+                this.startDateInput = document.getElementById('startDateInput');
+                this.endDateInput = document.getElementById('endDateInput');
                 this.addBtn = document.getElementById('addBtn');
                 this.todoContainer = document.getElementById('todoContainer');
                 this.emptyState = document.getElementById('emptyState');
@@ -562,9 +668,12 @@
                 this.remainingCount = document.getElementById('remainingCount');
                 this.tabs = document.querySelectorAll('.tab');
                 this.viewBtns = document.querySelectorAll('.view-btn');
+                this.taskTypeBtns = document.querySelectorAll('.task-type-btn');
                 this.listView = document.getElementById('listView');
                 this.calendarView = document.getElementById('calendarView');
                 this.calendarContainer = document.getElementById('calendarContainer');
+                this.singleDateInput = document.querySelector('.single-date-input');
+                this.periodInputs = document.querySelector('.period-inputs');
             }
 
             bindEvents() {
@@ -587,23 +696,80 @@
                         this.setView(btn.dataset.view);
                     });
                 });
+                
+                this.taskTypeBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.setTaskType(btn.dataset.type);
+                    });
+                });
+                
+                this.startDateInput.addEventListener('change', () => {
+                    this.validatePeriodDates();
+                });
+                
+                this.endDateInput.addEventListener('change', () => {
+                    this.validatePeriodDates();
+                });
+            }
+
+            setTaskType(type) {
+                this.taskType = type;
+                
+                this.taskTypeBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.type === type);
+                });
+                
+                if (type === 'single') {
+                    this.singleDateInput.style.display = 'flex';
+                    this.periodInputs.classList.remove('active');
+                } else {
+                    this.singleDateInput.style.display = 'none';
+                    this.periodInputs.classList.add('active');
+                }
+            }
+
+            validatePeriodDates() {
+                const startDate = this.startDateInput.value;
+                const endDate = this.endDateInput.value;
+                
+                if (startDate && endDate && startDate > endDate) {
+                    this.endDateInput.setCustomValidity('終了日は開始日以降である必要があります');
+                    this.endDateInput.reportValidity();
+                    return false;
+                } else {
+                    this.endDateInput.setCustomValidity('');
+                    return true;
+                }
             }
 
             addTodo() {
                 const text = this.taskInput.value.trim();
                 if (!text) return;
+                
+                if (this.taskType === 'period' && !this.validatePeriodDates()) {
+                    return;
+                }
 
                 const todo = {
                     id: Date.now(),
                     text: text,
                     completed: false,
                     createdAt: new Date().toISOString(),
-                    dueDate: this.dueDateInput.value || null
+                    type: this.taskType
                 };
+                
+                if (this.taskType === 'single') {
+                    todo.dueDate = this.dueDateInput.value || null;
+                } else {
+                    todo.startDate = this.startDateInput.value || null;
+                    todo.endDate = this.endDateInput.value || null;
+                }
 
                 this.todos.unshift(todo);
                 this.taskInput.value = '';
                 this.dueDateInput.value = '';
+                this.startDateInput.value = '';
+                this.endDateInput.value = '';
                 this.addBtn.disabled = true;
                 this.saveTodos();
                 this.render();
@@ -686,7 +852,7 @@
                                 onchange="todoApp.toggleTodo(${todo.id})"
                             />
                             <span class="todo-text">${this.escapeHtml(todo.text)}</span>
-                            ${todo.dueDate ? `<span class="todo-due-date ${this.getDueDateClass(todo.dueDate)}">${this.formatDueDate(todo.dueDate)}</span>` : ''}
+                            ${todo.dueDate || todo.startDate || todo.endDate ? `<span class="todo-due-date ${this.getDueDateClass(todo)}">${this.formatDueDate(todo)}</span>` : ''}
                             <button 
                                 class="delete-btn" 
                                 onclick="todoApp.deleteTodo(${todo.id})"
@@ -750,11 +916,15 @@
                 this.render();
             }
 
-            getDueDateClass(dueDate) {
-                if (!dueDate) return '';
+            getDueDateClass(todo) {
+                if (todo.type === 'period') {
+                    return this.getPeriodDateClass(todo);
+                }
+                
+                if (!todo.dueDate) return '';
                 
                 const today = new Date();
-                const due = new Date(dueDate);
+                const due = new Date(todo.dueDate);
                 const diffTime = due - today;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 
@@ -764,10 +934,14 @@
                 return '';
             }
 
-            formatDueDate(dueDate) {
-                if (!dueDate) return '';
+            formatDueDate(todo) {
+                if (todo.type === 'period') {
+                    return this.formatPeriodDate(todo);
+                }
                 
-                const date = new Date(dueDate);
+                if (!todo.dueDate) return '';
+                
+                const date = new Date(todo.dueDate);
                 const today = new Date();
                 const diffTime = date - today;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -779,6 +953,61 @@
                 if (diffDays <= 7) return `${diffDays}日後`;
                 
                 return date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+            }
+
+            formatPeriodDate(todo) {
+                if (!todo.startDate && !todo.endDate) return '';
+                
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0];
+                
+                let startText = '';
+                let endText = '';
+                
+                if (todo.startDate) {
+                    const startDate = new Date(todo.startDate);
+                    startText = startDate.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+                }
+                
+                if (todo.endDate) {
+                    const endDate = new Date(todo.endDate);
+                    endText = endDate.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+                }
+                
+                if (startText && endText) {
+                    return `${startText} ~ ${endText}`;
+                } else if (startText) {
+                    return `${startText}から`;
+                } else if (endText) {
+                    return `${endText}まで`;
+                }
+                
+                return '';
+            }
+
+            getPeriodDateClass(todo) {
+                if (todo.type !== 'period') return '';
+                
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0];
+                
+                if (todo.startDate && todo.endDate) {
+                    if (todayStr >= todo.startDate && todayStr <= todo.endDate) {
+                        return 'period-active';
+                    } else if (todayStr > todo.endDate) {
+                        return 'overdue';
+                    } else {
+                        return 'period';
+                    }
+                } else if (todo.endDate) {
+                    if (todayStr > todo.endDate) {
+                        return 'overdue';
+                    } else {
+                        return 'period';
+                    }
+                } else {
+                    return 'period';
+                }
             }
 
             render() {
@@ -821,7 +1050,14 @@
                     const isCurrentMonth = date.getMonth() === currentMonth;
                     const isToday = date.toDateString() === today.toDateString();
                     
-                    const dayTodos = this.todos.filter(todo => todo.dueDate === dateStr);
+                    const dayTodos = this.todos.filter(todo => {
+                        if (todo.type === 'period') {
+                            return (todo.startDate && dateStr >= todo.startDate && (!todo.endDate || dateStr <= todo.endDate)) ||
+                                   (todo.endDate && dateStr <= todo.endDate && (!todo.startDate || dateStr >= todo.startDate));
+                        } else {
+                            return todo.dueDate === dateStr;
+                        }
+                    });
                     
                     calendarHTML += `
                         <div style="
@@ -835,26 +1071,50 @@
                             cursor: pointer;
                         " onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.1)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='${isToday ? '0 4px 12px rgba(59, 130, 246, 0.2)' : 'none'}'">
                             <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px; color: ${isToday ? '#1e40af' : '#374151'};">${date.getDate()}</div>
-                            ${dayTodos.map(todo => `
-                                <div style="
-                                    font-size: 10px;
-                                    font-weight: 500;
-                                    padding: 3px 6px;
-                                    margin: 2px 0;
-                                    background: ${todo.completed ? 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)' : 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)'};
-                                    border-radius: 6px;
-                                    text-decoration: ${todo.completed ? 'line-through' : 'none'};
-                                    color: ${todo.completed ? '#16a34a' : '#374151'};
-                                    cursor: pointer;
-                                    overflow: hidden;
-                                    text-overflow: ellipsis;
-                                    white-space: nowrap;
-                                    transition: all 0.2s ease;
-                                    border: 1px solid ${todo.completed ? 'rgba(34, 197, 94, 0.2)' : 'rgba(0, 0, 0, 0.06)'};
-                                " onclick="todoApp.toggleTodo(${todo.id})" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                                    ${this.escapeHtml(todo.text.substring(0, 12))}${todo.text.length > 12 ? '...' : ''}
-                                </div>
-                            `).join('')}
+                            ${dayTodos.map(todo => {
+                                let bgColor = 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)';
+                                let borderColor = 'rgba(0, 0, 0, 0.06)';
+                                let textColor = '#374151';
+                                
+                                if (todo.completed) {
+                                    bgColor = 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)';
+                                    borderColor = 'rgba(34, 197, 94, 0.2)';
+                                    textColor = '#16a34a';
+                                } else if (todo.type === 'period') {
+                                    const isInPeriod = todo.startDate && todo.endDate && dateStr >= todo.startDate && dateStr <= todo.endDate;
+                                    if (isInPeriod) {
+                                        bgColor = 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)';
+                                        borderColor = 'rgba(124, 58, 237, 0.3)';
+                                        textColor = '#7c3aed';
+                                    } else {
+                                        bgColor = 'linear-gradient(135deg, #fef3f2 0%, #fee2e2 100%)';
+                                        borderColor = 'rgba(239, 68, 68, 0.2)';
+                                        textColor = '#dc2626';
+                                    }
+                                }
+                                
+                                return `
+                                    <div style="
+                                        font-size: 10px;
+                                        font-weight: 500;
+                                        padding: 3px 6px;
+                                        margin: 2px 0;
+                                        background: ${bgColor};
+                                        border-radius: 6px;
+                                        text-decoration: ${todo.completed ? 'line-through' : 'none'};
+                                        color: ${textColor};
+                                        cursor: pointer;
+                                        overflow: hidden;
+                                        text-overflow: ellipsis;
+                                        white-space: nowrap;
+                                        transition: all 0.2s ease;
+                                        border: 1px solid ${borderColor};
+                                        ${todo.type === 'period' ? 'border-left: 3px solid ' + (todo.completed ? '#16a34a' : '#7c3aed') + ';' : ''}
+                                    " onclick="todoApp.toggleTodo(${todo.id})" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                        ${this.escapeHtml(todo.text.substring(0, 12))}${todo.text.length > 12 ? '...' : ''}
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     `;
                 }
