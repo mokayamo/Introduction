@@ -1036,12 +1036,13 @@
                     <div style="text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 24px; color: #1f2937;">
                         ${currentYear}年 ${monthNames[currentMonth]}
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: rgba(0, 0, 0, 0.06); border-radius: 16px; overflow: hidden; padding: 2px;">
+                    <div id="calendar-grid" style="position: relative; display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: rgba(0, 0, 0, 0.06); border-radius: 16px; overflow: visible; padding: 2px;">
                         ${['日', '月', '火', '水', '木', '金', '土'].map(day => 
                             `<div style="background: linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.9) 100%); padding: 12px; text-align: center; font-weight: 600; font-size: 14px; color: #64748b;">${day}</div>`
                         ).join('')}
                 `;
                 
+                // 通常のカレンダーセルを生成
                 for (let i = 0; i < 42; i++) {
                     const date = new Date(startDate);
                     date.setDate(startDate.getDate() + i);
@@ -1050,17 +1051,13 @@
                     const isCurrentMonth = date.getMonth() === currentMonth;
                     const isToday = date.toDateString() === today.toDateString();
                     
-                    const dayTodos = this.todos.filter(todo => {
-                        if (todo.type === 'period') {
-                            return (todo.startDate && dateStr >= todo.startDate && (!todo.endDate || dateStr <= todo.endDate)) ||
-                                   (todo.endDate && dateStr <= todo.endDate && (!todo.startDate || dateStr >= todo.startDate));
-                        } else {
-                            return todo.dueDate === dateStr;
-                        }
+                    // 単発タスクのみを表示
+                    const singleTodos = this.todos.filter(todo => {
+                        return todo.type !== 'period' && todo.dueDate === dateStr;
                     });
                     
                     calendarHTML += `
-                        <div style="
+                        <div class="calendar-cell" data-date="${dateStr}" style="
                             background: ${isToday ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)' : 'rgba(255, 255, 255, 0.9)'}; 
                             min-height: 90px; 
                             padding: 8px; 
@@ -1069,58 +1066,145 @@
                             ${isToday ? 'border: 2px solid #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);' : 'border: 1px solid rgba(0, 0, 0, 0.06);'}
                             transition: all 0.2s ease;
                             cursor: pointer;
+                            position: relative;
                         " onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.1)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='${isToday ? '0 4px 12px rgba(59, 130, 246, 0.2)' : 'none'}'">
                             <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px; color: ${isToday ? '#1e40af' : '#374151'};">${date.getDate()}</div>
-                            ${dayTodos.map(todo => {
-                                let bgColor = 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)';
-                                let borderColor = 'rgba(0, 0, 0, 0.06)';
-                                let textColor = '#374151';
-                                
-                                if (todo.completed) {
-                                    bgColor = 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)';
-                                    borderColor = 'rgba(34, 197, 94, 0.2)';
-                                    textColor = '#16a34a';
-                                } else if (todo.type === 'period') {
-                                    const isInPeriod = todo.startDate && todo.endDate && dateStr >= todo.startDate && dateStr <= todo.endDate;
-                                    if (isInPeriod) {
-                                        bgColor = 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)';
-                                        borderColor = 'rgba(124, 58, 237, 0.3)';
-                                        textColor = '#7c3aed';
-                                    } else {
-                                        bgColor = 'linear-gradient(135deg, #fef3f2 0%, #fee2e2 100%)';
-                                        borderColor = 'rgba(239, 68, 68, 0.2)';
-                                        textColor = '#dc2626';
-                                    }
-                                }
-                                
-                                return `
-                                    <div style="
-                                        font-size: 10px;
-                                        font-weight: 500;
-                                        padding: 3px 6px;
-                                        margin: 2px 0;
-                                        background: ${bgColor};
-                                        border-radius: 6px;
-                                        text-decoration: ${todo.completed ? 'line-through' : 'none'};
-                                        color: ${textColor};
-                                        cursor: pointer;
-                                        overflow: hidden;
-                                        text-overflow: ellipsis;
-                                        white-space: nowrap;
-                                        transition: all 0.2s ease;
-                                        border: 1px solid ${borderColor};
-                                        ${todo.type === 'period' ? 'border-left: 3px solid ' + (todo.completed ? '#16a34a' : '#7c3aed') + ';' : ''}
-                                    " onclick="todoApp.toggleTodo(${todo.id})" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                                        ${this.escapeHtml(todo.text.substring(0, 12))}${todo.text.length > 12 ? '...' : ''}
-                                    </div>
-                                `;
-                            }).join('')}
+                            ${singleTodos.map(todo => `
+                                <div style="
+                                    font-size: 10px;
+                                    font-weight: 500;
+                                    padding: 3px 6px;
+                                    margin: 2px 0;
+                                    background: ${todo.completed ? 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)' : 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)'};
+                                    border-radius: 6px;
+                                    text-decoration: ${todo.completed ? 'line-through' : 'none'};
+                                    color: ${todo.completed ? '#16a34a' : '#374151'};
+                                    cursor: pointer;
+                                    overflow: hidden;
+                                    text-overflow: ellipsis;
+                                    white-space: nowrap;
+                                    transition: all 0.2s ease;
+                                    border: 1px solid ${todo.completed ? 'rgba(34, 197, 94, 0.2)' : 'rgba(0, 0, 0, 0.06)'};
+                                " onclick="todoApp.toggleTodo(${todo.id})" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                    ${this.escapeHtml(todo.text.substring(0, 12))}${todo.text.length > 12 ? '...' : ''}
+                                </div>
+                            `).join('')}
                         </div>
                     `;
                 }
                 
                 calendarHTML += '</div>';
                 this.calendarContainer.innerHTML = calendarHTML;
+                
+                // 期間タスクのバーを描画
+                this.renderPeriodBars(startDate);
+            }
+
+            renderPeriodBars(calendarStartDate) {
+                const calendarGrid = document.getElementById('calendar-grid');
+                if (!calendarGrid) return;
+                
+                // 期間タスクを取得
+                const periodTasks = this.todos.filter(todo => todo.type === 'period' && todo.startDate && todo.endDate);
+                
+                periodTasks.forEach((todo, index) => {
+                    this.createPeriodBar(todo, calendarStartDate, calendarGrid, index);
+                });
+            }
+
+            createPeriodBar(todo, calendarStartDate, calendarGrid, zIndex) {
+                const startDate = new Date(todo.startDate);
+                const endDate = new Date(todo.endDate);
+                
+                // カレンダーの範囲内での開始・終了位置を計算
+                const startDiff = Math.floor((startDate - calendarStartDate) / (24 * 60 * 60 * 1000));
+                const endDiff = Math.floor((endDate - calendarStartDate) / (24 * 60 * 60 * 1000));
+                
+                // カレンダーの範囲外の場合はスキップ
+                if (endDiff < 7 || startDiff >= 42) return;
+                
+                const clampedStart = Math.max(7, startDiff); // ヘッダー行の下から開始
+                const clampedEnd = Math.min(48, endDiff + 7); // カレンダーの範囲内で終了
+                
+                // 週ごとにバーを描画
+                let currentPos = clampedStart;
+                let barCount = 0;
+                
+                while (currentPos <= clampedEnd) {
+                    const weekStart = Math.floor(currentPos / 7) * 7;
+                    const weekEnd = weekStart + 6;
+                    const barStart = Math.max(currentPos, weekStart);
+                    const barEnd = Math.min(clampedEnd, weekEnd);
+                    
+                    if (barStart <= barEnd) {
+                        this.createWeeklyBar(todo, barStart, barEnd, calendarGrid, zIndex + barCount);
+                        barCount++;
+                    }
+                    
+                    currentPos = weekEnd + 1;
+                }
+            }
+
+            createWeeklyBar(todo, startPos, endPos, calendarGrid, zIndex) {
+                const bar = document.createElement('div');
+                const startCol = startPos % 7;
+                const endCol = endPos % 7;
+                const row = Math.floor(startPos / 7);
+                
+                const width = endCol - startCol + 1;
+                const topOffset = 40 + (zIndex % 3) * 20; // バーを重ならないように配置
+                
+                bar.className = 'period-bar';
+                bar.style.cssText = `
+                    position: absolute;
+                    grid-column: ${startCol + 1} / ${endCol + 2};
+                    grid-row: ${row + 1};
+                    height: 16px;
+                    background: ${todo.completed ? 
+                        'linear-gradient(135deg, #16a34a 0%, #15803d 100%)' : 
+                        'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'};
+                    border-radius: 8px;
+                    margin: 2px;
+                    margin-top: ${topOffset}px;
+                    z-index: ${1000 + zIndex};
+                    cursor: pointer;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                    backdrop-filter: blur(4px);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    display: flex;
+                    align-items: center;
+                    padding: 0 8px;
+                    font-size: 10px;
+                    font-weight: 600;
+                    color: white;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                `;
+                
+                // テキストは最初のバーにのみ表示
+                if (startPos % 7 === 0 || startPos === 7) {
+                    bar.textContent = todo.text.length > 15 ? todo.text.substring(0, 15) + '...' : todo.text;
+                }
+                
+                // イベントリスナー
+                bar.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleTodo(todo.id);
+                });
+                
+                bar.addEventListener('mouseenter', () => {
+                    bar.style.transform = 'translateY(-2px) scale(1.02)';
+                    bar.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.25)';
+                });
+                
+                bar.addEventListener('mouseleave', () => {
+                    bar.style.transform = 'translateY(0) scale(1)';
+                    bar.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+                });
+                
+                calendarGrid.appendChild(bar);
             }
         }
 
