@@ -1,0 +1,12 @@
+{
+  "name": "fresh-todo-app",
+  "version": "1.0.0",
+  "description": "Modern TODO list application with calendar view",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": ["todo", "calendar", "javascript"],
+  "author": "Claude Code Assistant",
+  "license": "MIT"
+}
